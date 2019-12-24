@@ -1,44 +1,32 @@
-import { Eq, getTupleEq } from "fp-ts/lib/Eq";
-import { Semigroup, getTupleSemigroup } from "fp-ts/lib/Semigroup";
-import { Point, y, x, eqPoint, semigroupPoint } from "./Point";
-import { Direction, fromRadians } from "./Direction";
+import { Eq, getTupleEq, eqNumber } from "fp-ts/lib/Eq";
+import { fieldNumber } from "fp-ts/lib/Field";
+import { Ord, ordNumber, contramap } from "fp-ts/lib/Ord";
+import { Ring, getTupleRing } from "fp-ts/lib/Ring";
+import { Angle, fromRadians } from "./Angle";
 
-export type Vector = [Point, Point];
+export type Vector = [number, number];
 
-const opposite = ([start, end]: Vector): number => y(end) - y(start);
+export const direction = (v: Vector): Angle => {
+  const [x, y] = v;
 
-const adjacent = ([start, end]: Vector): number => x(end) - x(start);
+  if (0 === x && 0 < y) return 0;
+  if (0 === x && 0 > y) return 180;
 
-export const direction = (v: Vector): Direction => {
-  const [start, end] = v;
-  const [startX, startY] = start;
-  const [endX, endY] = end;
+  if (0 === y && 0 < x) return 90;
+  if (0 === y && 0 > x) return 270;
 
-  const o = opposite(v);
-  const a = adjacent(v);
+  const angle = fromRadians(Math.atan(y / x));
 
-  if (eqPoint.equals(start, end)) return 0;
+  if (0 > x && 0 > y) return angle + 180;
+  if (0 < x && 0 > y) return angle - 180;
 
-  if (startX === endX && startY < endY) return 0;
-  if (startX === endX && startY > endY) return 180;
-
-  if (startY === endY && startX < endX) return 90;
-  if (startY === endY && startX > endX) return 270;
-
-  const angle = fromRadians(Math.atan(o / a));
-
-  if (startX < endX && startY < endY) return angle;
-  if (startX > endX && startY < endY) return angle;
-  if (startX > endX && startY > endY) return angle + 180;
-  if (startX < endX && startY > endY) return angle - 180;
+  return angle;
 };
 
-export const magnitude = (v: Vector): number =>
-  Math.sqrt(opposite(v) ** 2 + adjacent(v) ** 2);
+export const magnitude = ([x, y]: Vector): number => Math.sqrt(y ** 2 + x ** 2);
 
-export const eqVector: Eq<Vector> = getTupleEq(eqPoint, eqPoint);
+export const eq: Eq<Vector> = getTupleEq(eqNumber, eqNumber);
 
-export const semigroupVector: Semigroup<Vector> = getTupleSemigroup(
-  semigroupPoint,
-  semigroupPoint,
-);
+export const byMagnitude: Ord<Vector> = contramap(magnitude)(ordNumber);
+
+export const ring: Ring<Vector> = getTupleRing(fieldNumber, fieldNumber);

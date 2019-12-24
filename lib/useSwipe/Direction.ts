@@ -1,4 +1,4 @@
-import * as Geometry from "./Geometry";
+import { Angle } from "./Geometry";
 
 export enum Direction {
   Up = "up",
@@ -7,14 +7,12 @@ export enum Direction {
   Right = "right",
 }
 
-const isUp = Geometry.Direction.between(-90, 90);
-const isDown = Geometry.Direction.between(90, -90);
-const isLeft = Geometry.Direction.between(180, 0);
-const isRight = Geometry.Direction.between(0, 180);
+const isUp = Angle.between(-90, 90);
+const isDown = Angle.between(90, -90);
+const isLeft = Angle.between(180, 0);
+const isRight = Angle.between(0, 180);
 
-export const fromGeometricDirection = (
-  d: Geometry.Direction.Direction,
-): Direction => {
-  if (isLeft(d)) return Direction.Left;
-  if (isRight(d)) return Direction.Right;
+export const fromAngle = (a: Angle.Angle): Direction => {
+  if (isLeft(a)) return Direction.Left;
+  if (isRight(a)) return Direction.Right;
 };

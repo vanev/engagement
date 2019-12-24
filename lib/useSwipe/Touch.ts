@@ -1,24 +1,37 @@
-import { NonEmptyArray, snoc as neaSnoc } from "fp-ts/lib/NonEmptyArray";
-import { Point } from "./Geometry";
+import { Vector, Angle } from "./Geometry";
 
-interface Inactive {
-  _type: "Inactive";
+export interface Touch {
+  origin: Vector.Vector;
+  start: number;
+  vector: Vector.Vector;
 }
-export const inactive: Inactive = { _type: "Inactive" };
 
-interface Active {
-  _type: "Active";
-  path: NonEmptyArray<Point.Point>;
-}
-export const active = (path: NonEmptyArray<Point.Point>): Active => ({
-  _type: "Active",
-  path,
+export const touch = (
+  origin: Vector.Vector,
+  start: number,
+  vector: Vector.Vector,
+): Touch => ({
+  origin,
+  start,
+  vector,
 });
 
-export type Touch = Inactive | Active;
+export const start = (v: Vector.Vector): Touch =>
+  touch(v, Date.now(), Vector.ring.zero);
 
-export const isInactive = (t: Touch): t is Inactive => t._type === "Inactive";
-export const isActive = (t: Touch): t is Active => t._type === "Active";
+export const direction = ({ vector }: Touch): Angle.Angle =>
+  Vector.direction(vector);
 
-export const snoc = (point: Point.Point) => (t: Touch): Touch =>
-  isInactive(t) ? t : active(neaSnoc(t.path, point));
+export const magnitude = ({ vector }: Touch): number =>
+  Vector.magnitude(vector);
+
+export const duration = ({ start }: Touch): number => Date.now() - start;
+
+export const speed = (t: Touch): number => magnitude(t) / duration(t);
+
+export const snoc = (v: Vector.Vector) => (t: Touch): Touch =>
+  touch(
+    t.origin,
+    t.start,
+    Vector.ring.add(t.vector, Vector.ring.sub(v, t.origin)),
+  );

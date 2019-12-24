@@ -1,9 +1,9 @@
-import { Eq, eq, eqNumber } from "fp-ts/lib/Eq";
+import { Eq, eqNumber, contramap } from "fp-ts/lib/Eq";
 import { flow } from "fp-ts/lib/function";
 import { Semigroup, semigroupSum } from "fp-ts/lib/Semigroup";
 import { between as ordBetween, ordNumber } from "fp-ts/lib/Ord";
 
-export type Direction = number;
+export type Angle = number;
 
 const mod = (base: number) => (target: number): number => target % base;
 
@@ -11,23 +11,20 @@ const makePositive = (x: number): number => (x < 0 ? 360 + x : x);
 
 export const toCommon = flow(mod(360), makePositive);
 
-export const fromRadians = (radians: number): Direction =>
+export const fromRadians = (radians: number): Angle =>
   toCommon((radians * 180) / Math.PI);
 
-export const toRadians = (degrees: Direction): number =>
-  (degrees * Math.PI) / 180;
+export const toRadians = (degrees: Angle): number => (degrees * Math.PI) / 180;
 
-export const eqDirection: Eq<Direction> = eq.contramap(eqNumber, toCommon);
+export const eq: Eq<Angle> = contramap(toCommon)(eqNumber);
 
-export const semigroupDirection: Semigroup<Direction> = {
+export const semigroup: Semigroup<Angle> = {
   concat: flow(semigroupSum.concat, toCommon),
 };
 
 const betweenNumbers = ordBetween(ordNumber);
 
-export const between = (low: Direction, high: Direction) => (
-  x: Direction,
-): boolean => {
+export const between = (low: Angle, high: Angle) => (x: Angle): boolean => {
   let l = toCommon(low);
   const h = toCommon(high);
   let n = toCommon(x);

@@ -1,45 +1,29 @@
-import { useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { isNonEmpty } from "fp-ts/lib/Array";
-import { head, reduce } from "fp-ts/lib/NonEmptyArray";
-import { Option, map, some, none, getShow } from "fp-ts/lib/Option";
-import { Point, Vector } from "./Geometry";
-import { Direction, fromGeometricDirection } from "./Direction";
+import { flow } from "fp-ts/lib/function";
+import { head } from "fp-ts/lib/NonEmptyArray";
+import { Option, map, some, none, isSome } from "fp-ts/lib/Option";
+import { Direction, fromAngle } from "./Direction";
 import * as Touch from "./Touch";
 
 type Handler = (event: TouchEvent) => void;
 
 type SwipeMap = { [key in Direction]?: Handler };
 
-const getDirection = (t: Touch.Touch): Option<Direction> => {
-  if (Touch.isInactive(t)) return none;
-
-  const initial: [Point.Point, number] = [head(t.path), 0];
-
-  const reducer = (
-    [lastPoint, direction]: [Point.Point, number],
-    point: Point.Point,
-  ): [Point.Point, number] => [
-    point,
-    direction + Vector.direction([lastPoint, point]),
-  ];
-
-  const [_, direction] = reduce<Point.Point, [Point.Point, number]>(
-    initial,
-    reducer,
-  )(t.path);
-
-  return some(fromGeometricDirection(direction));
-};
+const direction: (t: Touch.Touch) => Direction = flow(
+  Touch.direction,
+  fromAngle,
+);
 
 const useSwipe = (swipemap: SwipeMap): void => {
-  const [state, setState] = useState<Touch.Touch>(Touch.inactive);
+  const touchRef = useRef<Option<Touch.Touch>>(none);
 
   const onTouchStart = (event: TouchEvent) => {
     const touches = Array.from(event.touches);
 
     if (isNonEmpty(touches)) {
       const { clientX, clientY } = head(touches);
-      setState(Touch.active([[clientX, clientY]]));
+      touchRef.current = some(Touch.start([clientX, clientY]));
     }
   };
 
@@ -48,23 +32,22 @@ const useSwipe = (swipemap: SwipeMap): void => {
 
     if (isNonEmpty(touches)) {
       const { clientX, clientY } = head(touches);
-      setState(Touch.snoc([clientX, clientY]));
+      touchRef.current = map(Touch.snoc([clientX, clientY]))(touchRef.current);
     }
   };
 
   const onTouchEnd = (event: TouchEvent) => {
-    console.log({ state });
+    if (isSome(touchRef.current)) {
+      const touch = touchRef.current.value;
+      if (Touch.speed(touch) < 1) return;
+      swipemap[direction(touch)](event);
+    }
 
-    const direction = getDirection(state);
-    console.log(direction);
-
-    map((direction: Direction) => swipemap[direction](event))(direction);
-
-    setState(Touch.inactive);
+    touchRef.current = none;
   };
 
   const onTouchCancel = (event: TouchEvent) => {
-    setState(Touch.inactive);
+    touchRef.current = none;
   };
 
   useEffect(() => {
@@ -79,7 +62,7 @@ const useSwipe = (swipemap: SwipeMap): void => {
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("touchcancel", onTouchCancel);
     };
-  }, [state]);
+  }, []);
 };
 
 export default useSwipe;

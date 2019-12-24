@@ -1,5 +1,4 @@
-import * as Point from "./Point";
 import * as Vector from "./Vector";
-import * as Direction from "./Direction";
+import * as Angle from "./Angle";
 
-export { Point, Vector, Direction };
+export { Vector, Angle };
